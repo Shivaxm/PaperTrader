@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Side {
+  YES
+  NO
+}
+
+enum LedgerReason {
+  SEED
+  BUY
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  orders       Order[]
+  fills        Fill[]
+  ledger       LedgerEntry[]
+  positions    Position[]
+
+  @@map("users")
+}
+
+model Order {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  requestId    String   @unique
+  marketSymbol String
+  marketTitle  String
+  side         Side
+  quantity     Int
+  createdAt    DateTime @default(now())
+  fill         Fill?
+
+  @@index([userId, createdAt])
+  @@map("orders")
+}
+
+model Fill {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  order        Order    @relation(fields: [orderId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  marketSymbol String
+  side         Side
+  priceCents   Int
+  priceSource  String
+  quantity     Int
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("fills")
+}
+
+model LedgerEntry {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  deltaCents Int
+  reason     LedgerReason
+  refId      String?
+  createdAt  DateTime     @default(now())
+
+  @@index([userId])
+  @@map("ledger_entries")
+}
+
+model Position {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  marketSymbol String
+  marketTitle  String
+  side         Side
+  quantity     Int
+  avgCostCents Int
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, marketSymbol, side])
+  @@index([userId])
+  @@map("positions")
+}
+
+model MarketSnapshot {
+  marketSymbol String   @id
+  title        String
+  priceCents   Int?
+  priceSource  String?
+  bidCents     Int?
+  lastCents    Int?
+  raw          Json
+  fetchedAt    DateTime @default(now())
+
+  @@map("market_snapshots")
+}
