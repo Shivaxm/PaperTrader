@@ -87,3 +87,47 @@ export function placeOrder(
 export function newRequestId(): string {
   return crypto.randomUUID();
 }
+
+// --- Order History ---
+
+export interface Order {
+  id: string;
+  marketTitle: string;
+  side: "YES" | "NO";
+  quantity: number;
+  priceCents: number | null;
+  priceSource: string | null;
+  costCents: number | null;
+  createdAt: string;
+}
+
+export function getOrders(): Promise<{ orders: Order[] }> {
+  return request("GET", "/orders");
+}
+
+// --- Portfolio ---
+
+export interface Position {
+  symbol: string;
+  marketTitle: string;
+  side: "YES" | "NO";
+  quantity: number;
+  avgCostCents: number;
+  markCents: number;
+  stale: boolean;
+  costBasisCents: number;
+  marketValueCents: number;
+  unrealizedPnlCents: number;
+}
+
+export interface Portfolio {
+  balanceCents: number;
+  positions: Position[];
+  totalPositionValueCents: number;
+  totalUnrealizedPnlCents: number;
+  equityCents: number;
+}
+
+export function getPortfolio(): Promise<Portfolio> {
+  return request("GET", "/portfolio");
+}
