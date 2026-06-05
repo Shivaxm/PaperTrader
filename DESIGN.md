@@ -61,7 +61,9 @@ Base URL: `https://predictions.dev-onyxodds.com`
 
 ### Market data (public, no auth)
 - `GET /markets?limit=&offset=&sport=&status=open&event_type=&contract_type=&period_type=`
-  → array of markets. These query params back our search/filter UI directly.
+  → array of markets. The wire field for the market title is `name` (not `title`);
+  `httpOnyxClient` maps `name` → `title` in the adapter so downstream code uses
+  `title` uniformly. These query params back our search/filter UI directly.
 - `GET /markets/{symbol}` → single market.
 - `GET /markets/{symbol}/prices` → `{symbol, bid_price, ask_price, last_price, volume}`.
 
@@ -161,7 +163,10 @@ One fetcher process polls Onyx and writes `MarketSnapshot`. All client reads hit
 our cache, never Onyx. Per-symbol prices come from `GET /markets/{symbol}/prices`
 (the list's `yes_price` is often null), so the fetcher fans out per active symbol
 on a **3–5s interval**. This decouples constant upstream load from variable user
-load — critical given the flaky dev feed.
+load — critical given the flaky dev feed. If `listMarkets` encounters an HTTP or
+network error, the adapter returns an empty array instead of throwing — a flaky
+cycle degrades to "no markets refreshed" rather than crashing boot via an
+unhandled rejection.
 
 ### Live updates to the client
 WebSocket is **not exposed** by this API. Clients poll our cached endpoint

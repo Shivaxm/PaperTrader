@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import http from "node:http";
 import { prisma } from "../lib/db.js";
 import { app } from "../index.js";
+import { signToken, COOKIE_NAME } from "../lib/auth.js";
 
 // --- Helpers ---
 
@@ -45,6 +46,10 @@ async function cleanDb() {
   await prisma.marketSnapshot.deleteMany();
 }
 
+function cookieHeader(userId: string): string {
+  return `${COOKIE_NAME}=${signToken(userId)}`;
+}
+
 function httpRequest(
   server: http.Server,
   method: string,
@@ -75,13 +80,13 @@ function httpRequest(
 
 function post(server: http.Server, path: string, body: unknown, userId?: string) {
   const headers: Record<string, string> = {};
-  if (userId) headers["x-user-id"] = userId;
+  if (userId) headers["cookie"] = cookieHeader(userId);
   return httpRequest(server, "POST", path, body, headers);
 }
 
 function get(server: http.Server, path: string, userId?: string) {
   const headers: Record<string, string> = {};
-  if (userId) headers["x-user-id"] = userId;
+  if (userId) headers["cookie"] = cookieHeader(userId);
   return httpRequest(server, "GET", path, undefined, headers);
 }
 
@@ -228,8 +233,8 @@ describe("POST /orders + GET /orders + GET /portfolio", () => {
     }
   });
 
-  // Case 5: Auth required
-  it("auth required: POST/GET with no x-user-id → 401", async () => {
+  // Case 5: Auth required (no cookie)
+  it("auth required: POST/GET with no cookie → 401", async () => {
     const server = app.listen(0);
     try {
       const postRes = await post(server, "/orders", {
@@ -237,13 +242,13 @@ describe("POST /orders + GET /orders + GET /portfolio", () => {
         side: "YES",
         quantity: 1,
         requestId: "r",
-      }); // no userId
+      }); // no cookie
       expect(postRes.status).toBe(401);
 
-      const getOrders = await get(server, "/orders"); // no userId
+      const getOrders = await get(server, "/orders"); // no cookie
       expect(getOrders.status).toBe(401);
 
-      const getPortfolio = await get(server, "/portfolio"); // no userId
+      const getPortfolio = await get(server, "/portfolio"); // no cookie
       expect(getPortfolio.status).toBe(401);
     } finally {
       server.close();

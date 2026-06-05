@@ -1,6 +1,6 @@
-// TEMPORARY STUB — replaced by real auth in the auth task
-
 import type { Request, Response, NextFunction } from "express";
+import { COOKIE_NAME } from "../lib/auth.js";
+import { verifyToken } from "../lib/auth.js";
 
 declare global {
   namespace Express {
@@ -11,11 +11,18 @@ declare global {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const userId = req.headers["x-user-id"];
-  if (typeof userId !== "string" || !userId) {
+  const token = req.cookies?.[COOKIE_NAME];
+  if (typeof token !== "string" || !token) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
+
+  const userId = verifyToken(token);
+  if (!userId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
   req.userId = userId;
   next();
 }
