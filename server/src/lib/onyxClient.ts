@@ -22,18 +22,35 @@ export interface OnyxClient {
 
 // --- Real HTTP implementation (not called in tests) ---
 
+interface WireMarket {
+  symbol: string;
+  name: string;
+  sport?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
 export function httpOnyxClient(baseUrl: string): OnyxClient {
   return {
     async listMarkets(params) {
       const url = new URL("/markets", baseUrl);
-      if (params) {
-        for (const [k, v] of Object.entries(params)) {
-          url.searchParams.set(k, v);
-        }
+      // Sensible defaults: only open markets, reasonable page size
+      const merged: Record<string, string> = { status: "open", limit: "200", ...params };
+      for (const [k, v] of Object.entries(merged)) {
+        url.searchParams.set(k, v);
       }
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error(`listMarkets failed: ${res.status}`);
-      return (await res.json()) as OnyxMarket[];
+      try {
+        const res = await fetch(url.toString());
+        if (!res.ok) {
+          console.warn(`listMarkets failed: ${res.status} — returning empty list`);
+          return [];
+        }
+        const wire = (await res.json()) as WireMarket[];
+        return wire.map((m) => ({ ...m, title: m.name }));
+      } catch (e) {
+        console.warn("listMarkets network error — returning empty list:", (e as Error).message);
+        return [];
+      }
     },
     async getPrice(symbol) {
       const url = new URL(`/markets/${encodeURIComponent(symbol)}/prices`, baseUrl);
