@@ -1,0 +1,32 @@
+# Render Blueprint — Onyx Paper Trading
+# Single web service + managed Postgres (single-origin deploy per DESIGN.md §6).
+# IMPORTANT: Run as a single web instance — the price fetcher + in-process
+# scheduling assume one process. The cache lives in Postgres so reads are fine,
+# but keep one fetcher to avoid duplicate upstream requests.
+
+services:
+  - type: web
+    name: onyx-paper
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: onyx-paper-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ONYX_BASE_URL
+        value: https://predictions.dev-onyxodds.com
+      - key: POLL_INTERVAL_MS
+        value: "4000"
+      - key: STALE_AFTER_MS
+        value: "20000"
+    # No ONYX_API_KEY — market data is public (DESIGN.md §2)
+    # No CLIENT_ORIGIN/CORS — single-origin (DESIGN.md §6)
+
+databases:
+  - name: onyx-paper-db
+    plan: free
