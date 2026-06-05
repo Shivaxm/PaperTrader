@@ -23,7 +23,7 @@ services:
       - key: POLL_INTERVAL_MS
         value: "4000"
       - key: STALE_AFTER_MS
-        value: "20000"
+        value: "60000"
     # No ONYX_API_KEY — market data is public (DESIGN.md §2)
     # No CLIENT_ORIGIN/CORS — single-origin (DESIGN.md §6)
 

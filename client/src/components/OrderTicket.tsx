@@ -18,7 +18,7 @@ export default function OrderTicket({
   onClose,
 }: OrderTicketProps) {
   const { refresh } = useAuth();
-  const [quantity, setQuantity] = useState(10);
+  const [qtyStr, setQtyStr] = useState("10");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<{
@@ -30,16 +30,22 @@ export default function OrderTicket({
   // idempotency collapses double-clicks into a single fill.
   const requestIdRef = useRef(api.newRequestId());
 
-  const costCents = priceCents * quantity;
+  const parsedQty = parseInt(qtyStr, 10);
+  const qtyValid = Number.isInteger(parsedQty) && parsedQty > 0;
+  const costCents = qtyValid ? priceCents * parsedQty : 0;
 
   async function handleBuy() {
+    if (!qtyValid) {
+      setError("Enter a valid quantity (positive integer).");
+      return;
+    }
     setError("");
     setBusy(true);
     try {
       const result = await api.placeOrder(
         symbol,
         side,
-        quantity,
+        parsedQty,
         requestIdRef.current
       );
       setSuccess({ priceCents: result.priceCents, costCents: result.costCents });
@@ -69,14 +75,10 @@ export default function OrderTicket({
         <label className="ticket-label">
           Quantity
           <input
-            type="number"
-            min={1}
-            step={1}
-            value={quantity}
-            onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              if (v > 0) setQuantity(v);
-            }}
+            type="text"
+            inputMode="numeric"
+            value={qtyStr}
+            onChange={(e) => setQtyStr(e.target.value)}
             className="ticket-input"
           />
         </label>
@@ -96,7 +98,7 @@ export default function OrderTicket({
 
         <button
           className={`ticket-buy ${side.toLowerCase()}`}
-          disabled={busy || !!success}
+          disabled={busy || !!success || !qtyValid}
           onClick={handleBuy}
         >
           {busy ? "Placing..." : success ? "Filled" : `Buy ${side}`}

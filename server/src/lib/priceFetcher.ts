@@ -10,7 +10,7 @@ export const POLL_INTERVAL_MS = parseInt(
 );
 
 export const STALE_AFTER_MS = parseInt(
-  process.env["STALE_AFTER_MS"] ?? "20000",
+  process.env["STALE_AFTER_MS"] ?? "60000",
   10
 );
 
@@ -55,7 +55,9 @@ export async function refreshPrices(client: OnyxClient): Promise<void> {
           },
         });
       } catch {
-        // Per-symbol failure: write a null-price snapshot so the market still appears
+        // Per-symbol failure: create a placeholder if the market is brand new,
+        // but never overwrite an existing snapshot's price — let fetchedAt age
+        // govern staleness so last-known prices survive transient upstream 500s.
         await prisma.marketSnapshot.upsert({
           where: { marketSymbol: market.symbol },
           create: {
@@ -70,12 +72,6 @@ export async function refreshPrices(client: OnyxClient): Promise<void> {
           },
           update: {
             title: market.title,
-            priceCents: null,
-            priceSource: null,
-            bidCents: null,
-            lastCents: null,
-            raw: Prisma.JsonNull,
-            fetchedAt: new Date(),
           },
         });
       }

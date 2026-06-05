@@ -29,6 +29,7 @@ export function useMarkets(query: string) {
         const params = debouncedQuery ? { q: debouncedQuery } : undefined;
         const res = await api.getMarkets(params);
         if (!cancelled) {
+          res.markets.sort((a, b) => a.symbol.localeCompare(b.symbol));
           setMarkets(res.markets);
           setLastUpdated(new Date());
           setError(null);
