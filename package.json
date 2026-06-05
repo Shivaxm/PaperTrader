@@ -7,6 +7,6 @@
     "build:server": "cd server && npm run build",
     "build": "npm run build:client && npm run build:server",
     "migrate": "cd server && npx prisma migrate deploy",
-    "start": "npm run migrate && cd server && node dist/index.js"
+    "start": "npm run migrate && cd server && node --env-file-if-exists=.env dist/index.js"
   }
 }
