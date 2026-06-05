@@ -35,10 +35,11 @@ docker run --name onyxpg \
 
 ```bash
 cd server
-cp .env.example .env        # then fill in the values below
+cp .env.example .env          # then fill in the values below
 npm install
-npx prisma migrate dev      # creates the database tables
-npm run dev                 # API on http://localhost:4000
+set -a && source .env && set +a  # export env vars into your shell
+npx prisma migrate dev        # creates the database tables
+npm run dev                   # API on http://localhost:4000
 ```
 
 `server/.env`:
@@ -71,10 +72,10 @@ In production, one server serves both the API and the built frontend:
 
 ```bash
 # from the repo root
-npm install
+npm run install:all             # installs client + server dependencies
 npm run build
-cd server
-NODE_ENV=production npm start   # everything on http://localhost:4000
+set -a && source server/.env && set +a  # export env vars (if not already set)
+NODE_ENV=production npm start   # runs migrations, then serves on http://localhost:4000
 ```
 
 ---
