@@ -29,7 +29,12 @@ export function useMarkets(query: string) {
         const params = debouncedQuery ? { q: debouncedQuery } : undefined;
         const res = await api.getMarkets(params);
         if (!cancelled) {
-          res.markets.sort((a, b) => a.symbol.localeCompare(b.symbol));
+          res.markets.sort((a, b) => {
+            const ta = a.tradeable ? 0 : 1;
+            const tb = b.tradeable ? 0 : 1;
+            if (ta !== tb) return ta - tb;
+            return a.symbol.localeCompare(b.symbol);
+          });
           setMarkets(res.markets);
           setLastUpdated(new Date());
           setError(null);
